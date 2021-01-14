@@ -14,6 +14,7 @@ from pandas import DataFrame
 import numpy as np
 import itertools
 from scipy import stats
+
 try:
     from pandarallel import pandarallel
 
@@ -218,7 +219,9 @@ def drop_cols(df: DataFrame, cols: List[str]) -> DataFrame:
     return df
 
 
-def standardize_mol(mol: Mol, remove_stereo: bool = False, canonicalize_tautomer: bool = False):
+def standardize_mol(
+    mol: Mol, remove_stereo: bool = False, canonicalize_tautomer: bool = False
+):
     """Standardize the molecule structures.
     Returns:
     ========
@@ -734,12 +737,14 @@ def get_pca_feature_contrib(pca_model: PCA, features: list) -> DataFrame:
         df_feature_contrib[f"{c.split('_')[0]}_rank"] = df_feature_contrib.index + 1
 
     # add PC-wise ratios
-    pattern = '_feature_contrib'
+    pattern = "_feature_contrib"
     for c in df_feature_contrib:
         if c.endswith(pattern):
             tot = df_feature_contrib[c].sum()
             df_feature_contrib = df_feature_contrib.sort_values(c, ascending=False)
-            df_feature_contrib[f"{c.replace(pattern, '')}_feature_contrib_cum_ratio"] = df_feature_contrib[c].cumsum() / tot
+            df_feature_contrib[
+                f"{c.replace(pattern, '')}_feature_contrib_cum_ratio"
+            ] = (df_feature_contrib[c].cumsum() / tot)
 
     return df_feature_contrib.sort_values("Feature").reset_index(drop=True)
 
@@ -802,8 +807,6 @@ def get_pca_var(pca_model: PCA) -> DataFrame:
     return df_pca_var
 
 
-
-
 def plot_pca_var(df_pca_var: DataFrame) -> plt.Figure:
     """Plot the explained variance of each Principal Component.
 
@@ -816,7 +819,7 @@ def plot_pca_var(df_pca_var: DataFrame) -> plt.Figure:
     A barplot with the explained variance for each Principal Component.
     """
     total_var = df_pca_var["var"].sum()
-    df_pca_var['n'] = df_pca_var['PC'].map(lambda x: int(x[2:]))
+    df_pca_var["n"] = df_pca_var["PC"].map(lambda x: int(x[2:]))
 
     # generate the variance plot
     # initplot
@@ -828,9 +831,11 @@ def plot_pca_var(df_pca_var: DataFrame) -> plt.Figure:
     x_label = "Number of Principal Components"
     y_label = "Cumulated % of Total Variance"
     # create a red dotted line at 60%
-    ax.axhline(0.6, ls='--', color='red', zorder=1)
+    ax.axhline(0.6, ls="--", color="red", zorder=1)
     # create the bar plot
-    sns.barplot(ax=ax, x="n", y="var_cum_ratio", data=df_pca_var, color="gray", zorder=2)
+    sns.barplot(
+        ax=ax, x="n", y="var_cum_ratio", data=df_pca_var, color="gray", zorder=2
+    )
 
     # customize the plot
     ax.set_title("Variance Explained by Principal Components", fontsize=30, y=1.02)
@@ -857,7 +862,11 @@ def plot_pca_var(df_pca_var: DataFrame) -> plt.Figure:
     return figure
 
 
-def plot_pc_proj(df_pca: DataFrame, palette, hue_order=['ChEMBL-NP', 'DrugBank','Enamine', 'Pseudo-NPs']) -> plt.Figure:
+def plot_pc_proj(
+    df_pca: DataFrame,
+    palette,
+    hue_order=["ChEMBL-NP", "DrugBank", "Enamine", "Pseudo-NPs"],
+) -> plt.Figure:
     """Plot the PCA data projected into the PC space.
 
     Parameters:
@@ -872,8 +881,8 @@ def plot_pc_proj(df_pca: DataFrame, palette, hue_order=['ChEMBL-NP', 'DrugBank',
     """
     # sort df by the hue order
     df_pca = df_pca.copy()
-    df_pca['Dataset'] = df_pca['Dataset'].astype("category")
-    df_pca['Dataset'].cat.set_categories(hue_order, inplace=True)
+    df_pca["Dataset"] = df_pca["Dataset"].astype("category")
+    df_pca["Dataset"].cat.set_categories(hue_order, inplace=True)
     df_pca = df_pca.sort_values(["Dataset"])
 
     # initiate the multiplot
@@ -909,7 +918,9 @@ def plot_pc_proj(df_pca: DataFrame, palette, hue_order=['ChEMBL-NP', 'DrugBank',
     return figure
 
 
-def plot_pc_proj_with_ref(df_pca: DataFrame, ref: str, palette: Union[str, List] = PALETTE) -> plt.Figure:
+def plot_pc_proj_with_ref(
+    df_pca: DataFrame, ref: str, palette: Union[str, List] = PALETTE
+) -> plt.Figure:
     """Plot the PCA data projected into the PC space.
     A new row is added to the multiplot for each combination reference - subset.
 
@@ -931,7 +942,9 @@ def plot_pc_proj_with_ref(df_pca: DataFrame, ref: str, palette: Union[str, List]
     fig.suptitle("Principal Component Analysis", fontsize=40, y=1)
     sns.set_style("whitegrid", {"axes.edgecolor": "0.2"})
     sns.set_context("paper", font_scale=2)
-    dataset_pairs = itertools.product(*[[ref], [e for e in df_pca['Dataset'].unique() if e != ref]])
+    dataset_pairs = itertools.product(
+        *[[ref], [e for e in df_pca["Dataset"].unique() if e != ref]]
+    )
     counter = 1
     for i, dataset_pair in enumerate(dataset_pairs):
 
@@ -939,16 +952,19 @@ def plot_pc_proj_with_ref(df_pca: DataFrame, ref: str, palette: Union[str, List]
             plt.subplot(3, 3, counter)
             x_label = col_pairs[0]
             y_label = col_pairs[1]
-            palette_curr = [palette[i+1], palette[0]]
-            ax = sns.scatterplot(x=x_label,
-                                 y=y_label,
-                                 data=df_pca[df_pca['Dataset'].isin(dataset_pair)].iloc[::-1],  # reverse order to get the ref above the rest
-                                 hue="Dataset",  # color by cluster
-                                 legend=True,
-                                 palette=palette_curr,
-                                 alpha=0.5,
-                                 edgecolor="none",
-                                )
+            palette_curr = [palette[i + 1], palette[0]]
+            ax = sns.scatterplot(
+                x=x_label,
+                y=y_label,
+                data=df_pca[df_pca["Dataset"].isin(dataset_pair)].iloc[
+                    ::-1
+                ],  # reverse order to get the ref above the rest
+                hue="Dataset",  # color by cluster
+                legend=True,
+                palette=palette_curr,
+                alpha=0.5,
+                edgecolor="none",
+            )
             ax.set_ylim([-10, 15])
             ax.set_xlim([-10, 25])
             ax.set_title(f"{x_label} and {y_label}", fontsize=30, y=1.02)
@@ -978,7 +994,7 @@ def plot_pca_cum_feature_contrib_3pc(df_pca_feature_contrib: DataFrame) -> plt.F
     fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(24, 12), sharey=True)
 
     # configure plot
-    fig.suptitle("Cumulated Feature Contribution to Principal Components",fontsize=30)
+    fig.suptitle("Cumulated Feature Contribution to Principal Components", fontsize=30)
     sns.set_style("whitegrid", {"axes.edgecolor": "0.2"})
     sns.set_context("paper", font_scale=2)
     fig.subplots_adjust(hspace=0.2, wspace=0.2, top=0.8)
@@ -986,32 +1002,35 @@ def plot_pca_cum_feature_contrib_3pc(df_pca_feature_contrib: DataFrame) -> plt.F
     y_label = "Cumulated % of Feature Contribution"
 
     # iterate over combinations of PCs (PC1 and PC2, PC1 and PC3 and PC2 and PC3)
-    pcs = sorted(list(set([c.split('_')[0] for c in df_pca_feature_contrib.columns if '_' in c])))
+    pcs = sorted(
+        list(set([c.split("_")[0] for c in df_pca_feature_contrib.columns if "_" in c]))
+    )
     for i, pc in enumerate(pcs):
         # create the a subplot
         axes[i].set_title(pc, fontsize=30)
         col_y = f"{pc}_feature_contrib_cum_ratio"
-        sns.barplot(ax=axes[i],
-                    x="Feature",
-                    y=col_y,
-                    data=df_pca_feature_contrib.sort_values(col_y),
-                    color="gray",
-                    zorder=2,
-                   )
+        sns.barplot(
+            ax=axes[i],
+            x="Feature",
+            y=col_y,
+            data=df_pca_feature_contrib.sort_values(col_y),
+            color="gray",
+            zorder=2,
+        )
         # add x label and ticks for first plot only
         if i == 0:
             # y label
-            axes[i].set_ylabel(y_label,fontsize=25, labelpad=20)
+            axes[i].set_ylabel(y_label, fontsize=25, labelpad=20)
             # y ticklabels
             yticklabels = [f"{x:,.0%}" for x in axes[i].get_yticks()]
             axes[i].set_yticklabels(yticklabels)
         else:
-            axes[i].set_ylabel('')
+            axes[i].set_ylabel("")
 
         # x label
-        axes[i].set_xlabel(x_label,fontsize=20, labelpad=20)
-        axes[i].tick_params(axis='x', rotation=90)
-        axes[i].axhline(0.5, ls='--', color='red', zorder=1)
+        axes[i].set_xlabel(x_label, fontsize=20, labelpad=20)
+        axes[i].tick_params(axis="x", rotation=90)
+        axes[i].axhline(0.5, ls="--", color="red", zorder=1)
 
     fig.subplots_adjust(bottom=1.0, top=2.5)
     plt.tight_layout()
@@ -1050,16 +1069,20 @@ def plot_pca_feature_contrib(df_pca_feature_contrib: DataFrame) -> plt.Figure:
     for ax in g.axes.ravel():
         ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
 
-    g.fig.suptitle("Feature Contribution to Principal Components",
-                   fontsize=30,
-                  )
+    g.fig.suptitle(
+        "Feature Contribution to Principal Components",
+        fontsize=30,
+    )
     plt.legend(bbox_to_anchor=(1.01, 1), borderaxespad=0)
     plt.tight_layout()
     fig = plt.gcf()
 
     return fig
 
-def plot_pca_loadings_3pc(pca_model: PCA, pca: np.ndarray, features: List[str], color_dots: str = 'white'):
+
+def plot_pca_loadings_3pc(
+    pca_model: PCA, pca: np.ndarray, features: List[str], color_dots: str = "white"
+):
     """Plot the principal component loadings. By default, only the arrows
     and the feature labels are plotted. If the color_dots parameter is modified,
     then a biplot is generated instead.
@@ -1082,10 +1105,12 @@ def plot_pca_loadings_3pc(pca_model: PCA, pca: np.ndarray, features: List[str], 
     coefficients = np.transpose(pca_model.components_)
 
     # plot initialization
-    fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(24, 7), sharex=True, sharey=True)
+    fig, axes = plt.subplots(
+        nrows=1, ncols=3, figsize=(24, 7), sharex=True, sharey=True
+    )
     axes = axes.ravel()
     # add main title
-    fig.suptitle("Principal Component Loading",fontsize=30)
+    fig.suptitle("Principal Component Loading", fontsize=30)
     sns.set_style("whitegrid", {"axes.edgecolor": "0.2"})
     sns.set_context("paper", font_scale=2)
     fig.subplots_adjust(hspace=0.2, wspace=0.2, top=0.8)
@@ -1094,22 +1119,40 @@ def plot_pca_loadings_3pc(pca_model: PCA, pca: np.ndarray, features: List[str], 
     for i, ax in enumerate(axes):
         pc_pair = pc_pairs[i]
         # determine what columns to retrieve from the pca matrix
-        idx_x = int(pc_pair[0].replace('PC', '')) - 1
-        idx_y = int(pc_pair[1].replace('PC', '')) - 1
+        idx_x = int(pc_pair[0].replace("PC", "")) - 1
+        idx_y = int(pc_pair[1].replace("PC", "")) - 1
         # retrieve values
-        scores_x = scores[:,idx_x]
-        scores_y = scores[:,idx_y]
-        coefficients_curr = coefficients[:,[idx_x, idx_y]]
+        scores_x = scores[:, idx_x]
+        scores_y = scores[:, idx_y]
+        coefficients_curr = coefficients[:, [idx_x, idx_y]]
         # zoom in Principal Components space
         n = coefficients_curr.shape[0]
         scale_x = 1.0 / (scores_x.max() - scores_x.min())
         scale_y = 1.0 / (scores_y.max() - scores_y.min())
         # plot all data points as white just to get the appropriate coordinates
-        ax.scatter(x=scores_x * scale_x, y=scores_y * scale_y, s=5, color='white')  # we interest ourselves in the loadings, this is not a biplot
+        ax.scatter(
+            x=scores_x * scale_x, y=scores_y * scale_y, s=5, color="white"
+        )  # we interest ourselves in the loadings, this is not a biplot
         # add eigenvectors as annotated arrows
         for j in range(n):
-            ax.arrow(0, 0, coefficients_curr[j,0], coefficients_curr[j,1],color = 'gray',alpha = 0.8, head_width=0.015)
-            ax.text(coefficients_curr[j,0], coefficients_curr[j,1], features[j], color = 'red', ha = 'center', va = 'center', fontsize=11)
+            ax.arrow(
+                0,
+                0,
+                coefficients_curr[j, 0],
+                coefficients_curr[j, 1],
+                color="gray",
+                alpha=0.8,
+                head_width=0.015,
+            )
+            ax.text(
+                coefficients_curr[j, 0],
+                coefficients_curr[j, 1],
+                features[j],
+                color="red",
+                ha="center",
+                va="center",
+                fontsize=11,
+            )
 
         # finish subplots
         ax.set_title(f"{' and '.join(pc_pair)}", fontsize=20)
@@ -1120,13 +1163,12 @@ def plot_pca_loadings_3pc(pca_model: PCA, pca: np.ndarray, features: List[str], 
     return fig
 
 
-
-#FRAGMENTS = {
+# FRAGMENTS = {
 #    "acyl_halide": Chem.MolFromSmarts('[#9,#17,#35,#53]=O'),  # C(=O)X
 #    "anhydride": Chem.MolFromSmarts('[#6]-[#6](=O)-[#8]-[#6](-[#6])=O'),  # CC(=O)OC(=O)C
 #    "peroxide": Chem.MolFromSmarts('[#8]-[#8]'),  # R-O-O-R'
 #    "ab_unsaturated_ketone": Chem.MolFromSmarts('[#6]=[#6]-[#6]=O'),  # R=CC=O
-#}
+# }
 
 DESCRIPTORS = {
     # classical molecular descriptors
@@ -1149,24 +1191,25 @@ DESCRIPTORS = {
     "num_atoms_halogen": Fragments.fr_halogen,
     "num_atoms_bridgehead": rdMolDesc.CalcNumBridgeheadAtoms,
     # custom molecular descriptors
-    #"ring_size_min": get_min_ring_size,
-    #"ring_size_max": get_max_ring_size,
+    # "ring_size_min": get_min_ring_size,
+    # "ring_size_max": get_max_ring_size,
     "frac_sp3": lambda x: rdMolDesc.CalcFractionCSP3(x),
     # HTS filters 1/2 - present in the RDKit Fragments
-    #"num_aldehyde": Fragments.fr_aldehyde,
-    #"num_diazo":Fragments.fr_diazo,
-    #"num_carbonyl": Fragments.fr_C_O,  # in Over paper, dicarbonyl compounds are filtered out
-    #"num_sulfide": Fragments.fr_sulfide,  # in Over paper, disulfide compounds are filtered out
-    #"num_hydrazine": Fragments.fr_hdrzine,
-    #"num_isocyanate": Fragments.fr_isocyan,
-    #"num_isothiocyanate": Fragments.fr_isothiocyan,
-    #"num_quaternary_amine": Fragments.fr_quatN,
+    # "num_aldehyde": Fragments.fr_aldehyde,
+    # "num_diazo":Fragments.fr_diazo,
+    # "num_carbonyl": Fragments.fr_C_O,  # in Over paper, dicarbonyl compounds are filtered out
+    # "num_sulfide": Fragments.fr_sulfide,  # in Over paper, disulfide compounds are filtered out
+    # "num_hydrazine": Fragments.fr_hdrzine,
+    # "num_isocyanate": Fragments.fr_isocyan,
+    # "num_isothiocyanate": Fragments.fr_isothiocyan,
+    # "num_quaternary_amine": Fragments.fr_quatN,
     # HTS filters 2/2 - not present in the RDKit Fragments
-    #"num_ab_unsaturated_ketone": lambda x: len(x.GetSubstructMatches(FRAGMENTS['ab_unsaturated_ketone'])),  # R=CC=O
-    #"num_acyl_halide": lambda x: len(x.GetSubstructMatches(FRAGMENTS['acyl_halide'])),  # C(=O)X
-    #"num_anhydride": lambda x: len(x.GetSubstructMatches(FRAGMENTS['anhydride'])),  # CC(=O)OC(=O)C
-    #"num_peroxide": lambda x: len(x.GetSubstructMatches(FRAGMENTS['peroxide'])),  # R-O-O-R'
+    # "num_ab_unsaturated_ketone": lambda x: len(x.GetSubstructMatches(FRAGMENTS['ab_unsaturated_ketone'])),  # R=CC=O
+    # "num_acyl_halide": lambda x: len(x.GetSubstructMatches(FRAGMENTS['acyl_halide'])),  # C(=O)X
+    # "num_anhydride": lambda x: len(x.GetSubstructMatches(FRAGMENTS['anhydride'])),  # CC(=O)OC(=O)C
+    # "num_peroxide": lambda x: len(x.GetSubstructMatches(FRAGMENTS['peroxide'])),  # R-O-O-R'
 }
+
 
 def plot_features(df_features: DataFrame, dataset_name: str, color: str) -> plt.Figure:
     """Create a multiplot of maximum 5x4 sub-barplots, with one barplot for each feature.
@@ -1184,7 +1227,13 @@ def plot_features(df_features: DataFrame, dataset_name: str, color: str) -> plt.
     A figure with 5x4 subplots.
     """
     # count the number of computed features
-    features = [c for c in df_features.columns if c in list(DESCRIPTORS.keys()) + ['num_violations_lipinski', 'num_violations_veber']]
+    features = [
+        c
+        for c in df_features.columns
+        if c
+        in list(DESCRIPTORS.keys())
+        + ["num_violations_lipinski", "num_violations_veber"]
+    ]
     num_features = len(features)
 
     # init figure
@@ -1192,26 +1241,35 @@ def plot_features(df_features: DataFrame, dataset_name: str, color: str) -> plt.
     axes = axes.ravel()  # access directly the ax objects
 
     # add main title
-    fig.suptitle(f"Feature Distribution in {dataset_name}", fontsize=40)#, y=0.92)
+    fig.suptitle(f"Feature Distribution in {dataset_name}", fontsize=40)  # , y=0.92)
     # set style
     sns.set_style("whitegrid", {"axes.edgecolor": "0.2"})
     sns.set_context("paper", font_scale=2)
-    fig.subplots_adjust(hspace=0.4, wspace=0.3)#, top=0.8)
+    fig.subplots_adjust(hspace=0.4, wspace=0.3)  # , top=0.8)
 
     # plot barcharts
     for i, ax in enumerate(axes):
 
         if i < num_features:
-            sns.distplot(df_features[features[i]], kde=False, label='', color=color, ax=ax, hist_kws=dict(alpha=1))
+            sns.distplot(
+                df_features[features[i]],
+                kde=False,
+                label="",
+                color=color,
+                ax=ax,
+                hist_kws=dict(alpha=1),
+            )
             feature_mean = df_features[features[i]].mean()
-            ax.axvline(feature_mean, color='black', ls='--', zorder=2) # dotted line for median
+            ax.axvline(
+                feature_mean, color="black", ls="--", zorder=2
+            )  # dotted line for median
 
             if not i % 5:
-                ax.set_ylabel("Count", fontsize=20)# , labelpad=20)
+                ax.set_ylabel("Count", fontsize=20)  # , labelpad=20)
 
             # ax.set_title(f"{features[i]}", fontsize=20)
         else:
-           # here need to hide mol descriptors for empty plots (18th, 19th, 20th)
+            # here need to hide mol descriptors for empty plots (18th, 19th, 20th)
             fig.delaxes(ax)
     plt.tight_layout()
 
